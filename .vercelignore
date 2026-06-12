@@ -1,3 +1,4 @@
-api/app
-api/data
-backend
+node_modules
+venv
+.venv
+__pycache__
