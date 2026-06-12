@@ -69,31 +69,9 @@ app.include_router(api.router)
 app.include_router(stream.router)
 
 
-def _ensure_ready():
-    """Create tables and seed if empty. Idempotent. Runs at import time so it
-    works on every ASGI host, including serverless runtimes that don't fire
-    lifespan events. The seeder is deterministic (random.seed(7)), so a cold
-    serverless instance generates the exact same marketplace — planted fraud
-    rings included — as a local `python -m app.seed`."""
-    Base.metadata.create_all(engine)
-    from . import models
-    db = SessionLocal()
-    try:
-        empty = db.query(models.Seller).count() == 0
-    finally:
-        db.close()
-    if empty:
-        log.info("Empty database detected — seeding deterministic demo data…")
-        from . import seed as _seed
-        _seed.gen()
-
-
-_ensure_ready()
-
-
 @app.on_event("startup")
 def on_startup():
-    _ensure_ready()
+    Base.metadata.create_all(engine)
     log.info("Tables ensured. API ready at /docs")
 
 
