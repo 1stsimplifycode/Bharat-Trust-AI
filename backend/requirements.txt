@@ -1,0 +1,9 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.34
+pydantic==2.9.2
+scikit-learn==1.5.2
+numpy==2.1.1
+python-dotenv==1.0.1
+# Postgres / Supabase (optional — only needed if DATABASE_URL is postgres)
+psycopg[binary]==3.2.2

@@ -1,0 +1,16 @@
+# environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# local runtime artifacts (the bundled snapshot lives in data/, tracked)
+backend/*.db
+*.sqlite3
+
+# tooling
+.vercel/
+.pytest_cache/
+node_modules/
+.DS_Store

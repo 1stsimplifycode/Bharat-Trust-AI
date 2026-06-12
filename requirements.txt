@@ -1,0 +1,9 @@
+# Root requirements — what Vercel installs for the serverless function.
+# Deliberately slim: no scikit-learn/scipy/numpy (the fraud agent auto-falls
+# back to its pure-Python detector), no psycopg (Vercel demo uses SQLite).
+# Local/Render runs use backend/requirements.txt with the full ML stack.
+fastapi==0.115.0
+uvicorn==0.30.6
+sqlalchemy==2.0.34
+pydantic==2.9.2
+python-dotenv==1.0.1
