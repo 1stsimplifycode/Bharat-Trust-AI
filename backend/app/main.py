@@ -98,7 +98,12 @@ def _find_frontend_dir():
 
 
 FRONTEND_DIR = _find_frontend_dir()
-_INDEX_HTML = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8") if FRONTEND_DIR else None
+if FRONTEND_DIR:
+    _INDEX_HTML = (FRONTEND_DIR / "index.html").read_text(encoding="utf-8")
+else:
+    # Serverless bundlers trace Python imports and drop loose static files —
+    # the dashboard ships as an importable module so it exists everywhere.
+    from ._frontend import HTML as _INDEX_HTML
 
 if FRONTEND_DIR:
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
@@ -106,13 +111,7 @@ if FRONTEND_DIR:
 
 @app.get("/", include_in_schema=False)
 def index():
-    if _INDEX_HTML:
-        return HTMLResponse(_INDEX_HTML)
-    return JSONResponse({
-        "service": "bharattrust-ai",
-        "note": "frontend bundle not found on this deployment — API is live",
-        "try": ["/docs", "/health", "/api/analytics/overview"],
-    })
+    return HTMLResponse(_INDEX_HTML)
 
 
 @app.get("/api/system", tags=["system"])
