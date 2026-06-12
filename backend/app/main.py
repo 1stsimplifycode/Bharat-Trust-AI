@@ -14,6 +14,7 @@ platform rearranges paths.
 import os
 import shutil
 import logging
+import threading
 from pathlib import Path
 
 # ---------- Vercel / serverless bootstrap (MUST run before importing .database) ----------
@@ -69,26 +70,46 @@ app.include_router(api.router)
 app.include_router(stream.router)
 
 
+_ready = False
+_ready_lock = threading.Lock()
+
+
 def _ensure_ready():
-    """Create tables and seed if empty. Idempotent. Runs at import time so it
-    works on every ASGI host, including serverless runtimes that don't fire
-    lifespan events. The seeder is deterministic (random.seed(7)), so a cold
-    serverless instance generates the exact same marketplace — planted fraud
-    rings included — as a local `python -m app.seed`."""
-    Base.metadata.create_all(engine)
-    from . import models
-    db = SessionLocal()
-    try:
-        empty = db.query(models.Seller).count() == 0
-    finally:
-        db.close()
-    if empty:
-        log.info("Empty database detected — seeding deterministic demo data…")
-        from . import seed as _seed
-        _seed.gen()
+    """Create tables and seed if empty. Idempotent and thread-safe.
+
+    Deliberately NOT run at import time: serverless runtimes cap the
+    initialization phase at ~10s (independent of request maxDuration), and
+    sklearn import + seeding 9,500 rows can exceed it. Running inside the
+    first request keeps cold init fast and gives seeding the full request
+    budget. The seeder is deterministic (random.seed(7)), so a cold instance
+    generates the exact same marketplace — planted fraud rings included — as
+    a local `python -m app.seed`."""
+    global _ready
+    if _ready:
+        return
+    with _ready_lock:
+        if _ready:
+            return
+        Base.metadata.create_all(engine)
+        from . import models
+        db = SessionLocal()
+        try:
+            empty = db.query(models.Seller).count() == 0
+        finally:
+            db.close()
+        if empty:
+            log.info("Empty database detected — seeding deterministic demo data…")
+            from . import seed as _seed
+            _seed.gen()
+        _ready = True
 
 
-_ensure_ready()
+@app.middleware("http")
+async def _bootstrap_middleware(request, call_next):
+    if not _ready:
+        import anyio
+        await anyio.to_thread.run_sync(_ensure_ready)
+    return await call_next(request)
 
 
 @app.on_event("startup")
