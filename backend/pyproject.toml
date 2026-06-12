@@ -1,0 +1,22 @@
+# Makes the backend an installable package so `pip install ./backend` puts the
+# `app` package into site-packages. This is how the code reaches serverless
+# bundles reliably: bundlers trace static imports and miss sys.path tricks,
+# but site-packages always ships with the function.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bharattrust-backend"
+version = "1.1.0"
+description = "BharatTrust AI — agents, orchestration and API"
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi",
+  "sqlalchemy",
+  "pydantic",
+  "python-dotenv",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
